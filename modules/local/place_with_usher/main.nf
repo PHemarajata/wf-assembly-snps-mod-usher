@@ -36,7 +36,7 @@ process PLACE_WITH_USHER {
     when:
     task.ext.when == null || task.ext.when
 
-    script:
+    shell:
     '''
     set -Eeuo pipefail
 
@@ -66,7 +66,7 @@ process PLACE_WITH_USHER {
         head -2 "!{integrated_alignment}" > temp_reference.fa
         if [[ -s temp_reference.fa ]]; then
             reference_file="temp_reference.fa"
-            echo "Using first sequence as reference: $(head -1 temp_reference.fa)" >> grafting_log.txt
+            echo "Using first sequence as reference: \$(head -1 temp_reference.fa)" >> grafting_log.txt
         else
             echo "ERROR: Cannot create reference from alignment" | tee -a grafting_log.txt
             exit 1
@@ -90,7 +90,7 @@ process PLACE_WITH_USHER {
     printf 'Converting alignment to VCF format...\\n' >> grafting_log.txt
     
     # First, create a VCF from the integrated alignment
-    snp-sites -v -o combined.vcf "!{integrated_alignment}" 2>> grafting_log.txt || {
+    snp-sites -v -o combined.vcf "${integrated_alignment}" 2>> grafting_log.txt || {
         echo "ERROR: Failed to convert alignment to VCF" | tee -a grafting_log.txt
         exit 1
     }
@@ -139,18 +139,18 @@ process PLACE_WITH_USHER {
     
     # Configure UShER options based on parameters
     retain_branch_lengths=""
-    if [[ "!{params.usher_retain_branch_lengths}" == "true" ]]; then
+    if [[ "${params.usher_retain_branch_lengths}" == "true" ]]; then
         retain_branch_lengths="--retain-input-branch-lengths"
     fi
     
     usher \\
-        --tree "!{backbone_tree}" \\
+        --tree "${backbone_tree}" \\
         --vcf backbone.vcf.gz \\
-        --reference "$reference_file" \\
+        --reference "\$reference_file" \\
         --save-mutation-annotated-tree backbone.pb \\
         --out-dir step1 \\
-        $retain_branch_lengths \\
-        --threads !{task.cpus} \\
+        \$retain_branch_lengths \\
+        --threads ${task.cpus} \\
         2>> grafting_log.txt || {
         echo "ERROR: Failed to build backbone MAT" | tee -a grafting_log.txt
         exit 1
@@ -164,17 +164,17 @@ process PLACE_WITH_USHER {
         
         # Configure optimization option
         optimize_tree=""
-        if [[ "!{params.usher_optimize_final_tree}" == "true" ]]; then
+        if [[ "${params.usher_optimize_final_tree}" == "true" ]]; then
             optimize_tree="--optimize-final-tree"
         fi
         
         usher \\
-            --load-mutation-annotated-tree "$MAT_OUT" \\
+            --load-mutation-annotated-tree "\$MAT_OUT" \\
             --vcf nonbackbone.vcf.gz \\
-            --reference "$reference_file" \\
+            --reference "\$reference_file" \\
             --out-dir step2 \\
-            $optimize_tree \\
-            --threads !{task.cpus} \\
+            \$optimize_tree \\
+            --threads ${task.cpus} \\
             2>> grafting_log.txt || {
             echo "WARNING: Failed to place non-backbone samples, using backbone-only tree" | tee -a grafting_log.txt
         }
@@ -193,10 +193,10 @@ process PLACE_WITH_USHER {
     # 8) Export final Newick tree
     printf 'Exporting final tree...\\n' >> grafting_log.txt
     
-    matUtils extract -i "$MAT_OUT" -t global_grafted.treefile 2>> grafting_log.txt || {
+    matUtils extract -i "\$MAT_OUT" -t global_grafted.treefile 2>> grafting_log.txt || {
         echo "ERROR: Failed to extract final tree" | tee -a grafting_log.txt
         # Fallback: copy backbone tree
-        cp "!{backbone_tree}" global_grafted.treefile
+        cp "${backbone_tree}" global_grafted.treefile
         echo "Using backbone tree as fallback" >> grafting_log.txt
     }
 
@@ -207,9 +207,9 @@ process PLACE_WITH_USHER {
         printf 'TREE GRAFTING (UShER placement) REPORT\\n'
         printf '======================================\\n'
         printf 'Date (UTC): %s\\n' "$(date -u +%FT%TZ)"
-        printf 'Backbone tree: %s\\n' "!{backbone_tree}"
-        printf 'Integrated alignment: %s\\n' "!{integrated_alignment}"
-        printf 'Reference genome: %s\\n' "!{reference_fasta}"
+        printf 'Backbone tree: %s\\n' "${backbone_tree}"
+        printf 'Integrated alignment: %s\\n' "${integrated_alignment}"
+        printf 'Reference genome: %s\\n' "${reference_fasta}"
         printf '\\n'
         printf 'SAMPLE STATISTICS\\n'
         printf '-----------------\\n'
@@ -249,7 +249,7 @@ process PLACE_WITH_USHER {
 
     # 10) Generate versions file
     {
-        printf '"!{task.process}":\\n'
+        printf '"${task.process}":\\n'
         printf '    usher: %s\\n' "$(usher --version 2>&1 | head -n1 | sed 's/^/    /' || echo 'unknown')"
         printf '    matUtils: %s\\n' "$(matUtils --version 2>&1 | head -n1 | sed 's/^/    /' || echo 'unknown')"
         printf '    bcftools: %s\\n' "$(bcftools --version 2>&1 | head -n1 | sed 's/^/    /' || echo 'unknown')"
