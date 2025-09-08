@@ -1,0 +1,5 @@
+Starting UShER placement
+Backbone tree: !{backbone_tree}
+Integrated alignment: !{integrated_alignment}
+Reference: !{reference_fasta}
+ERROR: Backbone tree file is empty or missing

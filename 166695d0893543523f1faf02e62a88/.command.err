@@ -1,0 +1,10 @@
+Unable to find image 'quay.io/biocontainers/usher:0.6.6--h719ac0c_2' locally
+0.6.6--h719ac0c_2: Pulling from biocontainers/usher
+0cacab098358: Already exists
+bd9ddc54bea9: Already exists
+d12534f49ff0: Pulling fs layer
+d12534f49ff0: Verifying Checksum
+d12534f49ff0: Download complete
+d12534f49ff0: Pull complete
+Digest: sha256:aeaa8cc3e3d29e96a1dcdc2eeb16a342ca3c91d04b4defbb058e7d8c3397ef6c
+Status: Downloaded newer image for quay.io/biocontainers/usher:0.6.6--h719ac0c_2
